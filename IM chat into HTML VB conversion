@@ -1,0 +1,255 @@
+
+
+
+Sub populate_HMLS_for_IM_GL()
+
+Dim recset As Object
+Dim i, nn As Long
+Dim html_dir_All, priorthread, priorsender, sfile, Nyc_Date, priorcolor, newcolor, html_win As String
+
+'Path for ALL Items
+html_dir_All = "N:\_KLF_\ICAP ISDAFIX\Outstanding IMs\GL_Test\HTMLS\00949902ICAPServicesExportIM_131762_IM_001_ALL\"
+
+'Path for In Window
+html_win = "N:\_KLF_\ICAP ISDAFIX\Outstanding IMs\GL_Test\HTMLS\00949902ICAPServicesExportIM_131762_IM_001_Window\"
+
+
+
+Cells(2, 1).Select
+
+priorthread = ""
+priorsender = ""
+nn = 1
+i = 2
+
+Do While Cells(i, 1).Value <> ""
+
+'Generate NYC_Date
+ populate_NYC_DATE i, Nyc_Date
+ 
+ Nyc_Date = Format(Nyc_Date, "mm/dd/yyyy hh:mm:ss")
+ 
+  'Body Alias
+   If Cells(i, 9).Value <> "" Then
+   body = Cells(i, 9).Value
+   body = Left(body, Len([body]) - 1)
+   body = Mid([body], 2)
+   Else
+   body = ""
+   End If
+
+If priorthread <> Cells(i, 1).Value Then
+
+If sfile <> "" Then
+Print #nn, "</table></html>"
+Close #nn
+sfile = ""
+End If
+
+sfile = html_dir_All & Format(Cells(i, 1).Value, "00000000000000000000") & ".html"
+
+Open sfile For Output As #nn
+
+    Print #nn, "<html>"
+    Print #nn, "<b>ConversationID: " & Format(Nyc_Date, "YYYY-MM-DD") & "-" & Cells(i, 1).Value
+    Print #nn, "<table border=1>"
+    Print #nn, "<tr bgcolor = #FFFFFF><td width=150><b>Message Date ET</b></td><td width=200><b>Sender</b></td><td width=200><b>Recipient</b></td><td width=350><b>Message Body</b></td><tr>"
+    Print #nn, "<tr bgcolor = #ADD8E6><td width=150>" & Nyc_Date & "</td><td width=200>" & Cells(i, 6).Value & "</td><td width=200>" & Cells(i, 7).Value & "</td><td width=350>" & body & "</td></tr>"
+    
+    priorthread = Cells(i, 1).Value
+    priorsender = Cells(i, 6).Value
+    priorcolor = "<tr bgcolor = #ADD8E6><td width=150>"
+    
+Else
+
+  If Cells(i, 6).Value = priorsender Then
+  Print #nn, priorcolor & Nyc_Date & "</td><td width=200>" & Cells(i, 6).Value & "</td><td width=200>" & Cells(i, 7).Value & "</td><td width=350>" & body & "</td></tr>"
+  
+  Else
+               If priorcolor = "<tr bgcolor = #ADD8E6><td width=150>" Then
+                  newcolor = "<tr bgcolor = #FFFFFF><td width=150>"
+               Else
+                  newcolor = "<tr bgcolor = #ADD8E6><td width=150>"
+               End If
+  
+  Print #nn, newcolor & Nyc_Date & "</td><td width=200>" & Cells(i, 6).Value & "</td><td width=200>" & Cells(i, 7).Value & "</td><td width=350>" & body & "</td></tr>"
+  priorsender = Cells(i, 6).Value
+  priorcolor = newcolor
+  
+  End If
+
+
+ 
+ 
+
+End If
+
+
+i = i + 1
+Cells(i, 1).Select
+Loop
+
+
+Print #nn, "</table></html>"
+Close #nn
+
+
+
+populate_window html_win
+
+End Sub
+
+
+Sub populate_NYC_DATE(i, Nyc_Date)
+'Dim Nyc_Date, WinValue As String
+
+If i = 2 Then
+Cells(i - 1, 10).Value = "NYC_Date"
+Cells(i - 1, 11).Value = "In Window"
+End If
+
+If DateValue(Cells(i, 3).Value) > DateValue("3/11/2007 02:00") And DateValue(Cells(i, 3).Value) < DateValue("11/4/2007 02:00") Then
+ Nyc_Date = DateAdd("h", -4, Cells(i, 3).Value)
+ 
+ ElseIf DateValue(Cells(i, 3).Value) > DateValue("3/9/2008 02:00") And DateValue(Cells(i, 3).Value) < DateValue("11/2/2008 02:00") Then
+ Nyc_Date = DateAdd("h", -4, Cells(i, 3).Value)
+ 
+ ElseIf DateValue(Cells(i, 3).Value) > DateValue("3/8/2009 02:00") And DateValue(Cells(i, 3).Value) < DateValue("11/1/2009 02:00") Then
+ Nyc_Date = DateAdd("h", -4, Cells(i, 3).Value)
+ 
+ ElseIf DateValue(Cells(i, 3).Value) > DateValue("3/14/2010 02:00") And DateValue(Cells(i, 3).Value) < DateValue("11/7/2010 02:00") Then
+ Nyc_Date = DateAdd("h", -4, Cells(i, 3).Value)
+ 
+  ElseIf DateValue(Cells(i, 3).Value) > DateValue("3/13/2011 02:00") And DateValue(Cells(i, 3).Value) < DateValue("11/6/2011 02:00") Then
+ Nyc_Date = DateAdd("h", -4, Cells(i, 3).Value)
+ 
+  ElseIf DateValue(Cells(i, 3).Value) > DateValue("3/11/2012 02:00") And DateValue(Cells(i, 3).Value) < DateValue("11/4/2012 02:00") Then
+ Nyc_Date = DateAdd("h", -4, Cells(i, 3).Value)
+ 
+ 
+  ElseIf DateValue(Cells(i, 3).Value) > DateValue("3/10/2013 02:00") And DateValue(Cells(i, 3).Value) < DateValue("11/3/2013 02:00") Then
+ Nyc_Date = DateAdd("h", -4, Cells(i, 3).Value)
+ 
+ Else
+ Nyc_Date = DateAdd("h", -5, Cells(i, 3).Value)
+ 
+ End If
+
+Cells(i, 10).Value = Nyc_Date
+
+
+If TimeValue(Nyc_Date) > TimeValue("10:29:29") And TimeValue(Nyc_Date) < TimeValue("11:31:00") Then
+Cells(i, 11).Value = "In Window"
+Else
+Cells(i, 11).Value = "Not In Window"
+End If
+
+End Sub
+
+
+Sub populate_window(html_win)
+'Dim html_win As String
+Dim i, J As Long
+Dim priorthread, wfile, Nyc_Date, priorcolor, priorsender, newcolor, body As String
+
+
+'html_win = "N:\_KLF_\ICAP ISDAFIX\Outstanding IMs\GL_Test\HTMLS\00949902ICAPServicesExportIM_131762_IM_002_Window\"
+i = 2
+priorthread = ""
+priorsender = ""
+J = 1
+
+Cells(2, 1).Select
+
+Do While Cells(i, 1).Value <> ""
+
+If Cells(i, 11) = "In Window" Then
+   Nyc_Date = Format(Cells(i, 10).Value, "mm/dd/yyyy hh:mm:ss")
+   
+   'Body Alias
+   If Cells(i, 9).Value <> "" Then
+   body = Cells(i, 9).Value
+   body = Left(body, Len([body]) - 1)
+   body = Mid([body], 2)
+   Else
+   body = ""
+   End If
+
+
+ If priorthread <> Cells(i, 1).Value Then
+
+     If wfile <> "" Then
+        Print #J, "</table></html>"
+        Close #J
+         wfile = ""
+     End If
+
+  wfile = html_win & Format(Cells(i, 1).Value, "00000000000000000000") & "_WIN.html"
+  Open wfile For Output As #J
+
+   Print #J, "<html>"
+   Print #J, "<b>ConversationID: " & Format(Nyc_Date, "YYYY-MM-DD") & "-" & Cells(i, 1).Value
+   Print #J, "<table border=1>"
+   Print #J, "<tr bgcolor = #FFFFFF><td width=150><b>Message Date ET</b></td><td width=200><b>Sender</b></td><td WIDTH=200><b>Recipient</b></td><td WIDTH=350><b>Message Body</b></td><tr>"
+   Print #J, "<tr bgcolor = #ADD8E6><td width=150>" & Nyc_Date & "</td><td width=200>" & Cells(i, 6).Value & "</td><td width=200>" & Cells(i, 7).Value & "</td><td width=350>" & body & "</td></tr>"
+   priorthread = Cells(i, 1).Value
+    priorcolor = "<tr bgcolor = #ADD8E6><td width=150>"
+    priorsender = Cells(i, 6).Value
+
+
+ Else
+
+  If Cells(i, 6).Value = priorsender Then
+  Print #J, priorcolor & Nyc_Date & "</td><td width=200>" & Cells(i, 6).Value & "</td><td width=200>" & Cells(i, 7).Value & "</td><td width=350>" & body & "</td></tr>"
+  
+  Else
+               If priorcolor = "<tr bgcolor = #ADD8E6><td width=150>" Then
+                  newcolor = "<tr bgcolor = #FFFFFF><td width=150>"
+               Else
+                  newcolor = "<tr bgcolor = #ADD8E6><td width=150>"
+               End If
+  
+  Print #J, newcolor & Nyc_Date & "</td><td width=200>" & Cells(i, 6).Value & "</td><td width=200>" & Cells(i, 7).Value & "</td><td width=350>" & body & "</td></tr>"
+  priorsender = Cells(i, 6).Value
+  priorcolor = newcolor
+
+
+  End If
+
+
+
+
+End If
+
+Else
+  
+  If Cells(i, 1).Value <> Cells(i + 1, 1).Value Then
+  If wfile <> "" Then
+  
+     Print #J, "</table></html>"
+     Close #J
+     wfile = ""
+  End If
+  End If
+End If
+
+i = i + 1
+Cells(i, 1).Select
+
+Loop
+
+
+
+If Cells(i, 1).Value <> "" Then
+Print #J, "</table></html>"
+Close #J
+End If
+
+MsgBox "Done"
+
+End Sub
+
+
+
+
+
