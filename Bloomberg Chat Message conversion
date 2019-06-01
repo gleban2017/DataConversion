@@ -1,0 +1,458 @@
+Module Module1
+
+    Sub Main()
+        Dim sConnectionString As String
+        Dim sSQL As String
+
+        Dim sFile As String
+        Dim iFileNum As Integer
+        Dim sBGColor As String
+        Dim sPrevUser As String
+        Dim sCurConversation As String
+        Dim bInTable As Boolean
+        Dim sCustodian As String
+        Dim sText As String
+
+        Dim dChatDate As Date
+        Dim sUserName As String
+        Dim sActivityType As String
+        Dim sContent As String
+        Dim sConvID As String
+
+        Dim sOutputLocation As String
+        Dim iDatFileNum As Integer
+        Dim sDatFile As String
+        Dim iBates As Integer
+        Dim sBatesPrefix As String
+        Dim sStartDateTime As String
+        Dim sEndDateTime As String
+        Dim aParticipants As ArrayList
+        Dim aAttachments As ArrayList
+
+
+        sOutputLocation = "C:\Gleb\BloombergChats\20160530\WINDOW\"
+        'sBatesPrefix = "CHAT-XML-DAY-"
+        'iBates = 1
+        'sDatFile = "KirbyFullDay.csv"
+        'sCustodian = "Russo"
+
+
+        sConnectionString = "Data Source=RKOSQL01;Initial Catalog=LIT_DB1;User ID=litsupp;Password=litsupp;Timeout=0"
+        'sSQL = "SELECT DISTINCT [UniqueActivityID],[ActivityNum],[FileID],[FileName],[DateTime],[DateTime],[ActivityType],[LoginName],[FirstName],[LastName],[UUID],[FirmNumber],[AccountNumber],[CompanyName],[EmailAddress],[CorporateEmailAddress],[UTC_Date],[UTC_DATE],[NYC_DATE],[DateTimeUTC],[Content],[ConversationID],[InviterLoginName],[InviterFirstName],[InviterLastName],[InviterUUID],[InviterFirmNumber],[InviterAccountNumber],[InviterCompanyName],[InviterEmailAddress],[InviterCorporateEmailAddress],[InviteeLoginName],[InviteeFirstName],[InviteeLastName],[InviteeUUID],[InviteeFirmNumber],[InviteeAccountNumber],[InviteeCompanyName],[InviteeEmailAddress],[InviteeCorporateEmailAddress] FROM [LIT_DB1].[dbo].[PearsonBBG_Chats] ORDER BY ConversationID, NYC_Date, ActivityNum"
+
+
+        'FULLDAY 
+        'sSQL = "SELECT DISTINCT [FileID],[FileName],[ActivityType],[NYC_DATE],[LoginName],[FirstName],[LastName],[UUID],[FirmNumber],[AccountNumber],[CompanyName],[EmailAddress],[CorporateEmailAddress],[Content],[ConversationID],[InviterLoginName],[InviterFirstName],[InviterLastName],[InviterUUID],[InviterFirmNumber],[InviterAccountNumber],[InviterCompanyName],[InviterEmailAddress],[InviterCorporateEmailAddress],[ActivityNum] FROM [LIT_DB1].[dbo].[ColemanTestBBG_Chats] ORDER BY ConversationID, NYC_Date, ActivityNum"
+
+
+        
+        'TIMEWINDOW
+        sSQL = "SELECT DISTINCT [FileID],[FileName],[ActivityType],[NYC_DATE],[LoginName],[FirstName],[LastName],[UUID],[FirmNumber],[AccountNumber],[CompanyName],[EmailAddress],[CorporateEmailAddress],[Content],[ConversationID],[InviterLoginName],[InviterFirstName],[InviterLastName],[InviterUUID],[InviterFirmNumber],[InviterAccountNumber],[InviterCompanyName],[InviterEmailAddress],[InviterCorporateEmailAddress],[ActivityNum] FROM [LIT_DB1].[dbo].[ColemanTestBBG_Chats] WHERE RKO_InWindow = 'In Window' ORDER BY ConversationID, NYC_Date, ActivityNum"
+
+        Dim sqlCnn As New System.Data.SqlClient.SqlConnection(sConnectionString)
+        Dim sqlCmd As System.Data.SqlClient.SqlCommand
+
+
+        Try
+            sqlCnn.Open()
+            sqlCmd = New System.Data.SqlClient.SqlCommand(sSQL, sqlCnn)
+
+        Catch ex As Exception
+            MsgBox("Cannot open connection. " & ex.Message)
+        End Try
+
+        Dim sqlReader As System.Data.SqlClient.SqlDataReader = sqlCmd.ExecuteReader()
+
+        sCurConversation = ""
+        sPrevUser = ""
+        sConvID = ""
+        sText = ""
+        sActivityType = ""
+
+        'Initialize DAT File
+
+        'sDatFile = sOutputLocation & sDatFile
+        'iDatFileNum = FreeFile()
+        'FileOpen(iDatFileNum, sDatFile, OpenMode.Append)
+        'sText = "RevID,BegAttach,ChatID,Link,StartTime,EndTime,Participents"
+        'Print(iDatFileNum, sText)
+
+        While sqlReader.Read()
+            Try
+                'Read the Next Row
+                sActivityType = sqlReader.Item(2)
+                dChatDate = sqlReader.Item(3)
+
+                If (sActivityType = "Invite") Then
+                    sUserName = sqlReader.Item(15) & " | " & sqlReader.Item(16) & " " & sqlReader.Item(17) & " | " & sqlReader.Item(18) & " | " & sqlReader.Item(19) & " | " & sqlReader.Item(20) & " | " & sqlReader.Item(21) & " | " & sqlReader.Item(22) & " | " & sqlReader.Item(23)
+                Else
+                    sUserName = sqlReader.Item(4) & " | " & sqlReader.Item(5) & " " & sqlReader.Item(6) & " | " & sqlReader.Item(7) & " | " & sqlReader.Item(8) & " | " & sqlReader.Item(9) & " | " & sqlReader.Item(10) & " | " & sqlReader.Item(11) & " | " & sqlReader.Item(12)
+                End If
+
+                If IsDBNull(sqlReader.Item(13)) Then
+                    sContent = ""
+                Else
+                    sContent = sqlReader.Item(13)
+                End If
+
+                sConvID = Format(dChatDate.Year, "0000") & "-" & Format(dChatDate.Month, "00") & "-" & Format(dChatDate.Day, "00") & "-" & AlphaNumericOnly(sqlReader.Item(14))
+
+                'MsgBox("Date: " & dChatDate & Chr(10) & "User: " & sUserName & Chr(10) & "Activity Type: " & sActivityType & Chr(10) & "Content:" & sContent & Chr(10) & sConvID)
+
+            Catch ex As Exception
+                MsgBox("Error reading row.")
+            End Try
+
+            'See if we need to open a new file
+            If sConvID <> sCurConversation Then
+                'Close old  open File
+                If iFileNum > 0 Then
+                    If bInTable Then
+                        sText = "</table>"
+                        Print(iFileNum, sText)
+                    End If
+
+                    sText = "</html>"
+                    Print(iFileNum, sText)
+
+                    FileClose(iFileNum)
+                End If
+
+                'Write DAT File
+
+                'sText = sBatesPrefix & Format(iBates, "00000000") & ","
+
+                'Initialize Settings for new Dat File Row
+
+                'If aParticipants.Count > 0 Then
+                'aParticipants.Clear()
+                'End If
+                'If aAttachments.Count > 0 Then
+                'aAttachments.Clear()
+                ' End If
+
+
+
+                'Initialize New File
+                sCurConversation = sConvID
+
+                sFile = sOutputLocation & sConvID & ".html"
+
+                iFileNum = FreeFile()
+                FileOpen(iFileNum, sFile, OpenMode.Append)
+
+                sText = "<html>"
+                Print(iFileNum, sText)
+
+                sText = sCurConversation
+                Print(iFileNum, "<b>Conversation ID: " & sText & "</b>")
+
+                sText = "<table border = 1>"
+                Print(iFileNum, sText)
+
+                bInTable = True
+                sBGColor = "bgcolor = #FFFFFF"
+
+                sText = "<tr " & sBGColor & "><td width=""150""><b>" & "Message Date ET" & "</b></td><td width=""200""><b>" & "User" & "<b></td><td width = ""350""><b>" & "Content" & "</b></td></b><tr>"
+                Print(iFileNum, sText)
+
+                sPrevUser = ""
+
+            End If
+            'Check Event Type
+            If (sActivityType = "Invite" Or sActivityType = "Message") Then
+                'If Table closed, open table
+                If bInTable = False Then
+                    sText = "<br><table border=1>"
+                    Print(iFileNum, sText)
+                    bInTable = True
+                End If
+
+                If sUserName = sPrevUser Then
+                    sBGColor = sBGColor
+                ElseIf sBGColor = "bgcolor = #CEE3F6" Then
+                    sBGColor = "bgcolor = #FFFFFF"
+                Else
+                    sBGColor = "bgcolor = #CEE3F6"
+                End If
+
+                sPrevUser = sUserName
+                sText = "<tr " & sBGColor & "><td width=""150"">" & Format(dChatDate, "MM/dd/yyyy hh:mm:ss tt") & "</td><td width=""200"">" & sUserName & "</td><td width=""350"">" & sContent & "</td><tr>"
+                Print(iFileNum, sText)
+            Else
+                'If Table open, close it
+                If bInTable Then
+                    sText = "</table><br>"
+                    Print(iFileNum, sText)
+                    bInTable = False
+                End If
+                If sActivityType = "Attachment" Then
+                    sText = "<em>" & sActivityType & " - " & Format(dChatDate, "MM/dd/yyyy hh:mm:ss tt") & " - " & sUserName & " - " & sqlReader.Item(1) & "</em><br>"
+                Else
+                    sText = "<em>" & sActivityType & " - " & Format(dChatDate, "MM/dd/yyyy hh:mm:ss tt") & " - " & sUserName & "</em><br>"
+                End If
+
+                Print(iFileNum, sText)
+            End If
+
+
+
+        End While
+
+        sText = "</table>"
+        Print(iFileNum, sText)
+
+        sText = "</html>"
+        Print(iFileNum, sText)
+
+        FileClose(iFileNum)
+        'FileClose(iDatFileNum)
+
+
+        sqlReader.Close()
+        sqlCmd.Dispose()
+        sqlCnn.Close()
+
+    End Sub
+    Function AlphaNumericOnly(strSource As String)
+        Dim i As Integer
+        Dim strResult As String
+
+        For i = 1 To Len(strSource)
+            Select Case Asc(Mid(strSource, i, 1))
+                Case 48 To 57, 65 To 90, 97 To 122
+                    strResult = strResult & Mid(strSource, i, 1)
+            End Select
+        Next
+        Return strResult
+    End Function
+
+End Module
+'Module Module1
+'    Sub Main()
+'        Dim sConnectionString As String
+'        Dim sSQL As String
+
+'        Dim sFile As String
+'        Dim iFileNum As Integer
+'        Dim sBGColor As String
+'        Dim sPrevUser As String
+'        Dim sCurConversation As String
+'        Dim bInTable As Boolean
+'        Dim sCustodian As String
+'        Dim sText As String
+
+'        Dim dChatDate As Date
+'        Dim sUserName As String
+'        Dim sActivityType As String
+'        Dim sContent As String
+'        Dim sConvID As String
+
+'        Dim sOutputLocation As String
+'        Dim iDatFileNum As Integer
+'        Dim sDatFile As String
+'        Dim iBates As Integer
+'        Dim sBatesPrefix As String
+'        Dim sStartDateTime As String
+'        Dim sEndDateTime As String
+'        Dim aParticipants As ArrayList
+'        Dim aAttachments As ArrayList
+
+'        Dim sLocationName As String
+
+'        sLocationName = "Watson"
+
+'        sOutputLocation = "N:\Database\ICAP - ISDAfix - 2348-00024\20140915 BBC Processing\" + sLocationName + "-Window\"
+'        'sBatesPrefix = "CHAT-XML-DAY-"
+'        'iBates = 1
+'        'sDatFile = "KirbyFullDay.csv"
+'        'sCustodian = "Russo"
+
+
+'        sConnectionString = "Data Source=RKOSQL01;Initial Catalog=LIT_DB1;User ID=litsupp;Password=litsupp;Timeout=0"
+'        'sSQL = "SELECT DISTINCT [UniqueActivityID],[ActivityNum],[FileID],[FileName],[DateTime],[DateTime],[ActivityType],[LoginName],[FirstName],[LastName],[UUID],[FirmNumber],[AccountNumber],[CompanyName],[EmailAddress],[CorporateEmailAddress],[UTC_Date],[UTC_DATE],[NYC_DATE],[DateTimeUTC],[Content],[ConversationID],[InviterLoginName],[InviterFirstName],[InviterLastName],[InviterUUID],[InviterFirmNumber],[InviterAccountNumber],[InviterCompanyName],[InviterEmailAddress],[InviterCorporateEmailAddress],[InviteeLoginName],[InviteeFirstName],[InviteeLastName],[InviteeUUID],[InviteeFirmNumber],[InviteeAccountNumber],[InviteeCompanyName],[InviteeEmailAddress],[InviteeCorporateEmailAddress] FROM [LIT_DB1].[dbo].[PearsonBBG_Chats] ORDER BY ConversationID, NYC_Date, ActivityNum"
+'        'FULLDAY 
+'        'sSQL = "SELECT DISTINCT [FileID],[FileName],[ActivityType],[NYC_DATE],[LoginName],[FirstName],[LastName],[UUID],[FirmNumber],[AccountNumber],[CompanyName],[EmailAddress],[CorporateEmailAddress],[Content],[ConversationID],[InviterLoginName],[InviterFirstName],[InviterLastName],[InviterUUID],[InviterFirmNumber],[InviterAccountNumber],[InviterCompanyName],[InviterEmailAddress],[InviterCorporateEmailAddress],[ActivityNum] FROM [LIT_DB1].[dbo].[WatersBBG_Chats] ORDER BY ConversationID, NYC_Date, ActivityNum"
+'        'sSQL = "SELECT DISTINCT [ActivityType],[ActivityType],[ActivityType],[NYC_DATE],[LoginName],[FirstName],[LastName],[ActivityType],[ActivityType],[ActivityType],[CompanyName],[EmailAddress],[CorporateEmailAddress],[Content],[ConversationID],[InviterLoginName],[InviterFirstName],[InviterLastName],[ActivityType],[ActivityType],[ActivityType],[InviterCompanyName],[InviterEmailAddress],[InviterCorporateEmailAddress],[ActivityNum] FROM [LIT_DB1].[dbo].[" + sLocationName + "SmarshBBG_Chats] ORDER BY ConversationID, NYC_Date, ActivityNum"
+
+'        'TIMEWINDOW
+'        sSQL = "SELECT DISTINCT [ActivityType],[ActivityType],[ActivityType],[NYC_DATE],[LoginName],[FirstName],[LastName],[ActivityType],[ActivityType],[ActivityType],[CompanyName],[EmailAddress],[CorporateEmailAddress],[Content],[ConversationID],[InviterLoginName],[InviterFirstName],[InviterLastName],[ActivityType],[ActivityType],[ActivityType],[InviterCompanyName],[InviterEmailAddress],[InviterCorporateEmailAddress],[ActivityNum] FROM [LIT_DB1].[dbo].[" + sLocationName + "SmarshBBG_Chats] WHERE RKO_InWindow = 'In Window' ORDER BY ConversationID, NYC_Date, ActivityNum"
+
+'        Dim sqlCnn As New System.Data.SqlClient.SqlConnection(sConnectionString)
+'        Dim sqlCmd As System.Data.SqlClient.SqlCommand
+
+
+'        Try
+'            sqlCnn.Open()
+'            sqlCmd = New System.Data.SqlClient.SqlCommand(sSQL, sqlCnn)
+
+'        Catch ex As Exception
+'            MsgBox("Cannot open connection. " & ex.Message)
+'        End Try
+
+'        Dim sqlReader As System.Data.SqlClient.SqlDataReader = sqlCmd.ExecuteReader()
+
+'        sCurConversation = ""
+'        sPrevUser = ""
+'        sConvID = ""
+'        sText = ""
+'        sActivityType = ""
+
+'        'Initialize DAT File
+
+'        'sDatFile = sOutputLocation & sDatFile
+'        'iDatFileNum = FreeFile()
+'        'FileOpen(iDatFileNum, sDatFile, OpenMode.Append)
+'        'sText = "RevID,BegAttach,ChatID,Link,StartTime,EndTime,Participents"
+'        'Print(iDatFileNum, sText)
+
+'        While sqlReader.Read()
+'            Try
+'                'Read the Next Row
+'                sActivityType = sqlReader.Item(2)
+'                dChatDate = sqlReader.Item(3)
+
+'                If (sActivityType = "Invite") Then
+'                    sUserName = sqlReader.Item(15) & " | " & sqlReader.Item(16) & " " & sqlReader.Item(17) & " | " & sqlReader.Item(21) & " | " & sqlReader.Item(22) & " | " & sqlReader.Item(23)
+'                Else
+'                    sUserName = sqlReader.Item(4) & " | " & sqlReader.Item(5) & " " & sqlReader.Item(6) & " | " & sqlReader.Item(10) & " | " & sqlReader.Item(11) & " | " & sqlReader.Item(12)
+'                End If
+
+'                If IsDBNull(sqlReader.Item(13)) Then
+'                    sContent = ""
+'                Else
+'                    sContent = sqlReader.Item(13)
+'                End If
+
+'                sConvID = Format(dChatDate.Year, "0000") & "-" & Format(dChatDate.Month, "00") & "-" & Format(dChatDate.Day, "00") & "-" & AlphaNumericOnly(sqlReader.Item(14))
+
+'                'MsgBox("Date: " & dChatDate & Chr(10) & "User: " & sUserName & Chr(10) & "Activity Type: " & sActivityType & Chr(10) & "Content:" & sContent & Chr(10) & sConvID)
+
+'            Catch ex As Exception
+'                MsgBox("Error reading row.")
+'            End Try
+
+'            'See if we need to open a new file
+'            If sConvID <> sCurConversation Then
+'                'Close old  open File
+'                If iFileNum > 0 Then
+'                    If bInTable Then
+'                        sText = "</table>"
+'                        Print(iFileNum, sText)
+'                    End If
+
+'                    sText = "</html>"
+'                    Print(iFileNum, sText)
+
+'                    FileClose(iFileNum)
+'                End If
+
+'                'Write DAT File
+
+'                'sText = sBatesPrefix & Format(iBates, "00000000") & ","
+
+'                'Initialize Settings for new Dat File Row
+
+'                'If aParticipants.Count > 0 Then
+'                'aParticipants.Clear()
+'                'End If
+'                'If aAttachments.Count > 0 Then
+'                'aAttachments.Clear()
+'                ' End If
+
+
+
+'                'Initialize New File
+'                sCurConversation = sConvID
+
+'                sFile = sOutputLocation & sConvID & ".html"
+
+'                iFileNum = FreeFile()
+'                FileOpen(iFileNum, sFile, OpenMode.Append)
+
+'                sText = "<html>"
+'                Print(iFileNum, sText)
+
+'                sText = sCurConversation
+'                Print(iFileNum, "<b>Conversation ID: " & sText & "</b>")
+
+'                sText = "<table border = 1>"
+'                Print(iFileNum, sText)
+
+'                bInTable = True
+'                sBGColor = "bgcolor = #FFFFFF"
+
+'                sText = "<tr " & sBGColor & "><td width=""150""><b>" & "Message Date ET" & "</b></td><td width=""200""><b>" & "User" & "<b></td><td width = ""350""><b>" & "Content" & "</b></td></b><tr>"
+'                Print(iFileNum, sText)
+
+'                sPrevUser = ""
+
+'            End If
+'            'Check Event Type
+'            If (sActivityType = "Invite" Or sActivityType = "Message") Then
+'                'If Table closed, open table
+'                If bInTable = False Then
+'                    sText = "<br><table border=1>"
+'                    Print(iFileNum, sText)
+'                    bInTable = True
+'                End If
+
+'                If sUserName = sPrevUser Then
+'                    sBGColor = sBGColor
+'                ElseIf sBGColor = "bgcolor = #CEE3F6" Then
+'                    sBGColor = "bgcolor = #FFFFFF"
+'                Else
+'                    sBGColor = "bgcolor = #CEE3F6"
+'                End If
+
+'                sPrevUser = sUserName
+'                sText = "<tr " & sBGColor & "><td width=""150"">" & Format(dChatDate, "MM/dd/yyyy hh:mm:ss") & "</td><td width=""200"">" & sUserName & "</td><td width=""350"">" & sContent & "</td><tr>"
+'                Print(iFileNum, sText)
+'            Else
+'                'If Table open, close it
+'                If bInTable Then
+'                    sText = "</table><br>"
+'                    Print(iFileNum, sText)
+'                    bInTable = False
+'                End If
+'                If sActivityType = "Attachment" Then
+'                    sText = "<em>" & sActivityType & " - " & Format(dChatDate, "MM/dd/yyyy hh:mm:ss") & " - " & sUserName & " - " & sqlReader.Item(1) & "</em><br>"
+'                Else
+'                    sText = "<em>" & sActivityType & " - " & Format(dChatDate, "MM/dd/yyyy hh:mm:ss") & " - " & sUserName & "</em><br>"
+'                End If
+
+'                Print(iFileNum, sText)
+'            End If
+
+
+
+'        End While
+
+'        sText = "</table>"
+'        Print(iFileNum, sText)
+
+'        sText = "</html>"
+'        Print(iFileNum, sText)
+
+'        FileClose(iFileNum)
+'        'FileClose(iDatFileNum)
+
+
+'        sqlReader.Close()
+'        sqlCmd.Dispose()
+'        sqlCnn.Close()
+
+'    End Sub
+'    Function AlphaNumericOnly(strSource As String)
+'        Dim i As Integer
+'        Dim strResult As String
+
+'        For i = 1 To Len(strSource)
+'            Select Case Asc(Mid(strSource, i, 1))
+'                Case 48 To 57, 65 To 90, 97 To 122
+'                    strResult = strResult & Mid(strSource, i, 1)
+'            End Select
+'        Next
+'        Return strResult
+'    End Function
+'End Module
