@@ -1,0 +1,270 @@
+Module Module1
+
+    Sub Main()
+        Dim sConnectionString As String
+        Dim sSQL As String
+
+        Dim sFile As String
+        Dim iFileNum As Integer
+        Dim sBGColor As String
+        Dim sPrevUser As String
+        Dim sCurConversation As String
+        Dim bInTable As Boolean
+        Dim sCustodian As String
+        Dim sText As String
+        Dim sattach As String
+        Dim sReference As String
+        Dim stext1, stext2 As String
+
+        Dim dChatDate As Date
+        Dim sUserName As String
+        Dim sActivityType As String
+        Dim sContent As String
+        Dim sConvID As String
+
+        Dim sOutputLocation As String
+        Dim iDatFileNum As Integer
+        Dim sDatFile As String
+        Dim iBates As Integer
+        Dim sBatesPrefix As String
+        Dim sStartDateTime As String
+        Dim sEndDateTime As String
+        Dim aParticipants As ArrayList
+        Dim aAttachments As ArrayList
+
+
+        sOutputLocation = "C:\Gleb\BloombergMessages\ALL_NEW\"
+
+
+        sConnectionString = "Data Source=PROSQL02;Initial Catalog=LIT_DB1;User ID=litdbuser;Password=LitDbAdmin;Timeout=0"
+
+        'FULLDAY 
+        sSQL = "SELECT DISTINCT [ACTIVITYTYPE],[ACTIVITYNUM],[FIRSTNAME],[LASTNAME],[FIRMNUMBER],[ACCOUNTNAME],[ACCOUNTNUMBER],[BLOOMBERGUUID],[BLOOMBERGEMAILADDRESS],[CorporateEmailAddress],[ForwardedBy],[Reference],[FileName],[FileID],[FileSize],[msgid],[msgbody],[subject],[rko_inwindow],[bbg_messageid],[nyc_date],[utc_date] from [LIT_DB1].[dbo].[MSG_GENERAL] order by msgid, nyc_date, activitynum"
+
+
+
+        'TIMEWINDOW
+        'sSQL = "SELECT DISTINCT [FileID],[FileName],[ActivityType],[NYC_DATE],[LoginName],[FirstName],[LastName],[UUID],[FirmNumber],[AccountNumber],[CompanyName],[EmailAddress],[CorporateEmailAddress],[Content],[ConversationID],[InviterLoginName],[InviterFirstName],[InviterLastName],[InviterUUID],[InviterFirmNumber],[InviterAccountNumber],[InviterCompanyName],[InviterEmailAddress],[InviterCorporateEmailAddress],[ActivityNum] FROM [LIT_DB1].[dbo].[ColemanTestBBG_Chats] WHERE RKO_InWindow = 'In Window' ORDER BY ConversationID, NYC_Date, ActivityNum"
+
+        Dim sqlCnn As New System.Data.SqlClient.SqlConnection(sConnectionString)
+        Dim sqlCmd As System.Data.SqlClient.SqlCommand
+
+
+        Try
+            sqlCnn.Open()
+            sqlCmd = New System.Data.SqlClient.SqlCommand(sSQL, sqlCnn)
+
+        Catch ex As Exception
+            MsgBox("Cannot open connection. " & ex.Message)
+        End Try
+
+        Dim sqlReader As System.Data.SqlClient.SqlDataReader = sqlCmd.ExecuteReader()
+
+        sCurConversation = ""
+        sPrevUser = ""
+        sConvID = ""
+        sText = ""
+        sActivityType = ""
+
+        'Initialize DAT File
+
+        'sDatFile = sOutputLocation & sDatFile
+        'iDatFileNum = FreeFile()
+        'FileOpen(iDatFileNum, sDatFile, OpenMode.Append)
+        'sText = "RevID,BegAttach,ChatID,Link,StartTime,EndTime,Participents"
+        'Print(iDatFileNum, sText)
+
+        While sqlReader.Read()
+            Try
+                'Read the Next Row
+                sActivityType = sqlReader.Item(0)
+                dChatDate = sqlReader.Item(20)
+
+                If (sActivityType = "OriginalSender") Then
+                    sUserName = "OriginalSender: " & sqlReader.Item(2) & " " & sqlReader.Item(3) & " | " & sqlReader.Item(4) & " | " & sqlReader.Item(5) & " | " & sqlReader.Item(6) & " | " & sqlReader.Item(7) & " | " & sqlReader.Item(8) & " | " & sqlReader.Item(9)
+
+                ElseIf (sActivityType = "Sender") Then
+                    sUserName = "Sender: " & sqlReader.Item(2) & " " & sqlReader.Item(3) & " | " & sqlReader.Item(4) & " | " & sqlReader.Item(5) & " | " & sqlReader.Item(6) & " | " & sqlReader.Item(7) & " | " & sqlReader.Item(8) & " | " & sqlReader.Item(9)
+
+                ElseIf (sActivityType = "Recipient") Then
+                    sUserName = "Recipient: " & sqlReader.Item(2) & " " & sqlReader.Item(3) & " | " & sqlReader.Item(4) & " | " & sqlReader.Item(5) & " | " & sqlReader.Item(6) & " | " & sqlReader.Item(7) & " | " & sqlReader.Item(8) & " | " & sqlReader.Item(9)
+
+                ElseIf (sActivityType = "ForwardedTo") Then
+                    sUserName = "ForwardedTo: " & sqlReader.Item(2) & " " & sqlReader.Item(3) & " | " & sqlReader.Item(4) & " | " & sqlReader.Item(5) & " | " & sqlReader.Item(6) & " | " & sqlReader.Item(7) & " | " & sqlReader.Item(8) & " | " & sqlReader.Item(9)
+
+               
+
+                End If
+
+
+
+       
+
+                sConvID = Format(dChatDate.Year, "0000") & Format(dChatDate.Month, "00") & Format(dChatDate.Day, "00") & "_" & Format(dChatDate, "hhmmss") & "-" & sqlReader.Item(15)
+
+                'MsgBox("Date: " & dChatDate & Chr(10) & "User: " & sUserName & Chr(10) & "Activity Type: " & sActivityType & Chr(10) & "Content:" & sContent & Chr(10) & sConvID)
+
+            Catch ex As Exception
+                MsgBox("Error reading row.")
+            End Try
+
+            'See if we need to open a new file
+            If sConvID <> sCurConversation Then
+                'Close old  open File
+                If iFileNum > 0 Then
+                    FileClose(iFileNum)
+                End If
+
+ 
+
+
+                'Initialize New File
+                sCurConversation = sConvID
+
+                'Null Attachment + Reference
+                sReference = ""
+                sattach = ""
+
+
+                sFile = sOutputLocation & sConvID & ".txt"
+
+                iFileNum = FreeFile()
+                FileOpen(iFileNum, sFile, OpenMode.Append)
+
+               
+
+                sText = sqlReader.Item(15)
+                Print(iFileNum, "Message ID: " & sText)
+                WriteLine(iFileNum)
+                WriteLine(iFileNum)
+
+               
+                'sCurConversation = sConvID
+          
+
+            End If
+            'Check Event Type
+
+          
+
+            If (sActivityType = "OriginalSender" Or sActivityType = "Sender" Or sActivityType = "Recipient" Or sActivityType = "ForwardedTo") Then
+
+
+                sText = sUserName
+                Print(iFileNum, sText)
+                WriteLine(iFileNum)
+            End If
+
+            If sActivityType = "Attachment" Then
+
+
+                'Check for Reference
+                If sqlReader.Item(11) <> "" Then
+                    If sReference <> "" Then
+                        sReference = sReference & ";" & sqlReader.Item(11)
+                    Else
+                        sReference = sqlReader.Item(11)
+
+                    End If
+
+                End If
+
+                'Check for Attachment
+                If sqlReader.Item(12) <> "" Then
+                    If sattach <> "" Then
+                        sattach = sattach & ";" & sqlReader.Item(12)
+                    Else
+                        sattach = sqlReader.Item(12)
+                    End If
+
+                End If
+
+            End If
+
+
+            If sActivityType = "MessageInfo" Then
+
+                WriteLine(iFileNum)
+                sText = "EST DateSent: " & Format(dChatDate, "MM/dd/yyyy hh:mm:ss tt")
+                Print(iFileNum, sText)
+                WriteLine(iFileNum)
+                sText = "UTC DateSent: " & Format(sqlReader.Item(21), "MM/dd/yyyy hh:mm:ss tt")
+                Print(iFileNum, sText)
+                WriteLine(iFileNum)
+                WriteLine(iFileNum)
+
+                If sReference <> "" Then
+                    sText = "Attachment Reference: " & sReference
+                    Print(iFileNum, sText)
+                    WriteLine(iFileNum)
+                End If
+
+                If sattach <> "" Then
+                    sText = "Attachment Filenames: " & sattach
+                    Print(iFileNum, sText)
+                    WriteLine(iFileNum)
+                End If
+
+                WriteLine(iFileNum)
+                WriteLine(iFileNum)
+                Print(iFileNum, "")
+                sText = "Subject: " & sqlReader.Item(17)
+                Print(iFileNum, sText)
+                WriteLine(iFileNum)
+                WriteLine(iFileNum)
+                WriteLine(iFileNum)
+                WriteLine(iFileNum)
+                WriteLine(iFileNum)
+                Print(iFileNum, "MessageBody:")
+                WriteLine(iFileNum)
+                Print(iFileNum, "----------------------------------------------------------------------------------------------------------------------------------------------")
+                WriteLine(iFileNum)
+                WriteLine(iFileNum)
+                sText = sqlReader.Item(16)
+                Print(iFileNum, sText)
+
+
+
+
+
+
+            End If
+
+         
+
+
+
+
+
+
+
+
+
+
+        End While
+
+
+
+        FileClose(iFileNum)
+
+
+
+        sqlReader.Close()
+        sqlCmd.Dispose()
+        sqlCnn.Close()
+
+    End Sub
+    Function AlphaNumericOnly(strSource As String)
+        Dim i As Integer
+        Dim strResult As String
+
+        For i = 1 To Len(strSource)
+            Select Case Asc(Mid(strSource, i, 1))
+                Case 48 To 57, 65 To 90, 97 To 122
+                    strResult = strResult & Mid(strSource, i, 1)
+            End Select
+        Next
+        Return strResult
+    End Function
+
+End Module
